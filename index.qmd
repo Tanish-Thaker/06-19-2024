@@ -1,0 +1,56 @@
+---
+title: "Bachelor Degrees in Census Tracts in LA"
+---
+
+```{r}
+#| echo: false
+#| message: false
+library(tidycensus)
+library(tidyverse)
+library(sf)
+library(ggplot2)
+```
+
+```{r}
+la_bachelors <- get_acs(geography = "tract",
+                        variables = "B15003_022",  # B15003_022 is the code for "Population 25 years and over with Bachelor's degree"
+                        state = "CA",
+                        county = "Los Angeles",
+                        geometry = TRUE,
+                        output = "wide")
+
+# Check the names of the columns in the fetched data
+names(la_bachelors)
+
+# Select relevant columns and rename them
+la_bachelors <- la_bachelors %>%
+  select(GEOID, estimate = estimate_B15003_022) %>%
+  rename(percentage_bachelors = estimate)
+
+# Convert to sf object for mapping
+la_bachelors_sf <- st_as_sf(la_bachelors, 
+                            coords = c("longitude", "latitude"), 
+                            crs = 4269)  # EPSG code for NAD83, California zone
+```
+
+```{r}
+ggplot() +
+  geom_sf(data = la_bachelors_sf, aes(fill = percentage_bachelors), color = "white") +
+  scale_fill_gradient(name = "Percentage\nwith Bachelor's Degree",
+                      low = "lightblue", high = "darkblue",
+                      na.value = "grey90",
+                      guide = guide_colorbar(barwidth = 10, barheight = 1,
+                                             title.position = "top",
+                                             title.hjust = 0.5)) +
+  labs(title = "Percentage of People with Bachelor's Degrees in Los Angeles County",
+       caption = "Source: US Census Bureau, ACS 5-year estimates") +
+  theme_minimal() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.caption = element_text(size = 10),
+        legend.position = "bottom")
+```
+
+
